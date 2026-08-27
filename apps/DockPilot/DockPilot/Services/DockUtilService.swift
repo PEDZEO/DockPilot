@@ -132,21 +132,32 @@ class DockUtilService {
         let expectedItems = expected.filter { $0.type != .spacer }
         guard expectedItems.count == actual.count else { return false }
 
-        return zip(expectedItems, actual).allSatisfy { expectedItem, actualItem in
-            guard expectedItem.type == actualItem.type,
-                  expectedItem.section == actualItem.section else {
-                return false
-            }
+        // Dock stores the apps and others sections independently. A folder may
+        // have a lower global position than a later app in an imported profile,
+        // but dockutil always lists every app before every folder. Compare order
+        // inside each section instead of treating both sections as one list.
+        return ["apps", "others"].allSatisfy { section in
+            let expectedSection = expectedItems.filter { $0.section == section }
+            let actualSection = actual.filter { $0.section == section }
+            guard expectedSection.count == actualSection.count else { return false }
 
-            switch expectedItem.type {
-            case .app, .folder:
-                return URL(fileURLWithPath: expectedItem.path).standardizedFileURL.path
-                    == URL(fileURLWithPath: actualItem.path).standardizedFileURL.path
-            case .url:
-                return expectedItem.name == actualItem.name && expectedItem.path == actualItem.path
-            case .spacer:
-                return true
+            return zip(expectedSection, actualSection).allSatisfy { expectedItem, actualItem in
+                itemsMatch(expected: expectedItem, actual: actualItem)
             }
+        }
+    }
+
+    private func itemsMatch(expected expectedItem: DockItem, actual actualItem: DockItemInfo) -> Bool {
+        guard expectedItem.type == actualItem.type else { return false }
+
+        switch expectedItem.type {
+        case .app, .folder:
+            return URL(fileURLWithPath: expectedItem.path).standardizedFileURL.path
+                == URL(fileURLWithPath: actualItem.path).standardizedFileURL.path
+        case .url:
+            return expectedItem.name == actualItem.name && expectedItem.path == actualItem.path
+        case .spacer:
+            return true
         }
     }
     
