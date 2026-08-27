@@ -36,23 +36,25 @@ struct DockPilotApp: App {
 
     var body: some Scene {
         WindowGroup(id: "main") {
-            if isInitialized {
-                ContentView()
-                    .environmentObject(appSettings)
-                    .environmentObject(updateChecker)
-                    .sheet(isPresented: $showUpdateWindow) {
-                        UpdateNotificationView(updateChecker: updateChecker)
-                    }
-                    .onChange(of: updateChecker.isUpdateAvailable) { _, isAvailable in
-                        if isAvailable {
-                            showUpdateWindow = true
+            Group {
+                if isInitialized {
+                    ContentView()
+                        .environmentObject(appSettings)
+                        .environmentObject(updateChecker)
+                        .sheet(isPresented: $showUpdateWindow) {
+                            UpdateNotificationView(updateChecker: updateChecker)
                         }
-                    }
-            } else {
-                ProgressView("Initializing DockPilot...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .task {
-                        await initializeApp()
+                        .onChange(of: updateChecker.isUpdateAvailable) { _, isAvailable in
+                            if isAvailable {
+                                showUpdateWindow = true
+                            }
+                        }
+                } else {
+                    ProgressView("Initializing DockPilot...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .task {
+                            await initializeApp()
+                        }
                     }
             }
             .environment(\.locale, appSettings.language.locale)
