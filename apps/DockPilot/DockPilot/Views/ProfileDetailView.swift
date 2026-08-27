@@ -205,17 +205,23 @@ struct DockItemRow: View {
                     Text("Others").tag("others")
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 140)
+                .labelsHidden()
+                .frame(width: 190)
+                .layoutPriority(1)
                 .help("Choose where this folder appears in the Dock")
             }
             
             // Trash icon button
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundColor(.secondary)
-                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 28, height: 28)
+                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
+            .clipShape(Circle())
+            .padding(.leading, 2)
             .help("Remove from profile")
         }
         .padding(.vertical, 4)
