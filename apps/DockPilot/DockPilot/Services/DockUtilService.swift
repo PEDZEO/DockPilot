@@ -37,6 +37,12 @@ struct DockItemInfo {
 
 class DockUtilService {
     static let shared = DockUtilService()
+
+    /// Apps.app is not a normal application tile on macOS 26. Its Dock entry
+    /// contains private launcher metadata which dockutil cannot recreate.
+    private static let systemManagedPaths: Set<String> = [
+        "/System/Applications/Apps.app",
+    ]
     
     private var dockutilPath: String?
     
@@ -56,7 +62,7 @@ class DockUtilService {
         
         print("✅ dockutil found, reading Dock...")
         let output = try await runDockutilCommand(["--list"])
-        let items = try parseDockutilOutput(output)
+        let items = try parseDockutilOutput(output).filter { !isSystemManaged($0.path) }
         print("📊 Read \(items.count) items from Dock")
         return items
     }
@@ -72,6 +78,11 @@ class DockUtilService {
         }
         
         let validItems = items.filter { item in
+            guard !isSystemManaged(item.path) else {
+                print("🛡️ Preserving system-managed Dock item: \(item.path)")
+                return false
+            }
+
             switch item.type {
             case .app, .folder:
                 let ok = FileManager.default.fileExists(atPath: item.path)
@@ -141,9 +152,27 @@ class DockUtilService {
     
     /// Clears all items from the Dock
     private func clearDock() async throws {
-        print("🧹 Clearing all items from Dock...")
-        _ = try await runDockutilCommand(["--remove", "all", "--no-restart", "--verbose"])
-        print("✅ Dock cleared")
+        print("🧹 Clearing managed Dock items while preserving system launchers...")
+        let output = try await runDockutilCommand(["--list"])
+        let currentItems = try parseDockutilOutput(output)
+
+        for item in currentItems where !isSystemManaged(item.path) {
+            do {
+                _ = try await runDockutilCommand(["--remove", item.path, "--no-restart"])
+            } catch {
+                // Some URL and localized items can only be addressed by label.
+                _ = try await runDockutilCommand(["--remove", item.name, "--no-restart"])
+            }
+        }
+
+        // Spacers are not included in dockutil --list.
+        _ = try? await runDockutilCommand(["--remove", "spacer-tiles", "--no-restart"])
+        print("✅ Managed Dock items cleared; system launchers preserved")
+    }
+
+    private func isSystemManaged(_ path: String) -> Bool {
+        let standardizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+        return Self.systemManagedPaths.contains(standardizedPath)
     }
     
     /// Wait until Dock responds to dockutil (avoids "connection interrupted" races)
