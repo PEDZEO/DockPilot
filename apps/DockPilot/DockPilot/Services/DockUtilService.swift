@@ -56,7 +56,9 @@ final class DockUtilService {
         if initialDifferences.isEmpty {
             return
         }
+#if DEBUG
         print("Dock profile differs before apply: \(initialDifferences.joined(separator: "; "))")
+#endif
 
         for attempt in 1...2 {
             try await clearManagedDockItems()

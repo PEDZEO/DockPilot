@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Show build environment
         run: |
@@ -54,7 +54,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$app_path" DockPilot-arm64.zip
 
       - name: Upload app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DockPilot-arm64
           path: DockPilot-arm64.zip
