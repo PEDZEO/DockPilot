@@ -1,77 +1,77 @@
 <div align="center">
 
+**English · [Русский](README_RU.md)**
+
 # DockPilot
 
-**Профили Dock для разных задач на macOS**
+**Task-focused Dock profiles for macOS**
 
-[![Сборка](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml/badge.svg)](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml)
+[![Build](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml/badge.svg)](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml)
 ![macOS 14.6+](https://img.shields.io/badge/macOS-14.6%2B-black?logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-black?logo=apple)
-![Лицензия](https://img.shields.io/badge/лицензия-некоммерческая-blue)
+![License](https://img.shields.io/badge/license-non--commercial-blue)
 
-DockPilot сохраняет разные наборы приложений, папок и сайтов в Dock и
-переключает их через верхнюю панель или глобальные горячие клавиши.
+DockPilot saves different sets of apps, folders, and websites in the macOS Dock
+and switches between them from the menu bar or with global keyboard shortcuts.
 
-<img width="956" alt="Интерфейс приложения для управления профилями Dock" src="https://github.com/user-attachments/assets/96964473-f437-4809-952f-39a3ab9b528d" />
+<img width="956" alt="DockPilot profile management interface" src="https://github.com/user-attachments/assets/96964473-f437-4809-952f-39a3ab9b528d" />
 
 </div>
 
-## Для чего это нужно
+## Why DockPilot?
 
-Один Dock быстро превращается в свалку из рабочих инструментов, развлечений и
-редко используемых приложений. DockPilot позволяет собрать отдельные профили,
-например:
+A single Dock quickly becomes crowded with development tools, entertainment,
+and rarely used apps. DockPilot lets you create focused profiles such as:
 
-- **Работа** — VS Code, Warp, Termius, Safari и почта;
-- **Личное** — Telegram, музыка, YouTube и Twitch;
-- **Игры** — Steam, Discord и игровые клиенты.
+- **Work** — VS Code, Warp, Termius, Safari, and Mail;
+- **Personal** — Telegram, music, YouTube, and Twitch;
+- **Gaming** — Steam, Discord, and game launchers.
 
-Переключение профиля меняет содержимое системного Dock, поэтому не требуется
-использовать отдельную панель или заменять интерфейс macOS.
+Applying a profile updates the native macOS Dock. There is no replacement Dock,
+extra taskbar, or separate launcher to manage.
 
-## Возможности
+## Features
 
-- создание неограниченного количества профилей Dock;
-- приложения, папки, ссылки и разделители внутри профиля;
-- быстрое переключение из верхней панели macOS;
-- глобальные сочетания клавиш `⌥1` — `⌥9`;
-- сохранение текущего Dock в выбранный профиль;
-- импорт и экспорт резервной копии профилей;
-- автоматическая проверка новых релизов на GitHub;
-- локальная работа без аккаунта и телеметрии;
-- автозапуск вместе с macOS.
+- unlimited Dock profiles;
+- apps, folders, links, and spacers inside a profile;
+- quick switching from the macOS menu bar;
+- global shortcuts from `⌥1` through `⌥9`;
+- capture the current Dock into a selected profile;
+- profile backup import and export;
+- automatic update checks against DockPilot GitHub releases;
+- local operation with no account or telemetry;
+- launch automatically at login.
 
-## Горячие клавиши
+## Keyboard shortcuts
 
-Профили, кроме системного профиля **Default**, получают сочетания по порядку:
+Non-default profiles receive shortcuts in their displayed order:
 
-| Профиль | Сочетание |
+| Profile | Shortcut |
 |---|---:|
-| Первый | `⌥1` |
-| Второй | `⌥2` |
-| Третий | `⌥3` |
+| First | `⌥1` |
+| Second | `⌥2` |
+| Third | `⌥3` |
 | … | … |
-| Девятый | `⌥9` |
+| Ninth | `⌥9` |
 
-Сочетания работают глобально, пока DockPilot запущен. Например, можно открыть
-профиль «Работа» через `⌥1`, не переключаясь на окно приложения.
+Shortcuts work globally while DockPilot is running. For example, you can apply
+the Work profile with `⌥1` without opening the app window.
 
-## Установка
+## Installation
 
-### Готовая сборка
+### Prebuilt app
 
-1. Открой последний успешный запуск в разделе
+1. Open the latest successful run under
    [Actions](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml).
-2. Внизу страницы скачай артефакт **DockPilot-arm64**.
-3. Распакуй архив и перенеси `DockPilot.app` в папку «Программы».
+2. Download the **DockPilot-arm64** artifact at the bottom of the run page.
+3. Extract the archive and move `DockPilot.app` into Applications.
 
-Сборка из GitHub Actions подписана локальной ad-hoc подписью, но не
-нотарифицирована Apple. При первом запуске macOS может попросить подтвердить
-открытие приложения в разделе «Конфиденциальность и безопасность».
+GitHub Actions builds use an ad-hoc signature and are not notarized by Apple.
+On first launch, macOS may ask you to approve the app under Privacy & Security.
 
-### Сборка из исходников
+### Build from source
 
-Требуются macOS 14.6 или новее и Xcode 26:
+Building locally requires macOS 14.6 or later and Xcode 26:
 
 ```bash
 git clone https://github.com/PEDZEO/DockPilot.git
@@ -79,26 +79,25 @@ cd DockPilot
 open apps/DockPilot/DockPilot.xcodeproj
 ```
 
-## Автоматическая сборка
+## Continuous integration
 
-Каждый push и pull request проверяется в GitHub Actions. Успешная сборка ветки
-`main` создаёт готовый архив `DockPilot-arm64.zip`, доступный в течение 14 дней.
+Every push and pull request is built with GitHub Actions. A successful `main`
+build produces `DockPilot-arm64.zip`, retained as an artifact for 14 days.
 
-## Ближайшие планы
+## Roadmap
 
-- настраиваемые клавиши для каждого профиля;
-- автоматическое переключение через режимы фокусирования macOS;
-- отдельный сценарий для игрового профиля;
-- собственная иконка и визуальный стиль DockPilot;
-- подписанные и нотарифицированные релизы.
+- customizable shortcuts for every profile;
+- automatic switching with macOS Focus modes;
+- a dedicated gaming-profile workflow;
+- an original DockPilot icon and visual identity;
+- signed and notarized releases.
 
-## Лицензия
+## License
 
-DockPilot распространяется только для некоммерческого использования по
-унаследованной лицензии. Полные условия и обязательное уведомление об авторских
-правах находятся в файле [LICENSE](LICENSE).
+DockPilot is available for non-commercial use under the inherited license. See
+[LICENSE](LICENSE) for the complete terms and required copyright notice.
 
-## Благодарности
+## Acknowledgements
 
-Управление системным Dock выполняется с помощью
+Native Dock management is powered by
 [dockutil](https://github.com/kcrawford/dockutil).
