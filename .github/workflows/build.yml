@@ -1,0 +1,52 @@
+name: Build DockPilot
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Show build environment
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Build release app
+        run: |
+          xcodebuild build \
+            -project apps/DockPilot/DockPilot.xcodeproj \
+            -scheme DockPilot \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES
+
+      - name: Package app
+        run: |
+          app_path="build/Build/Products/Release/DockPilot.app"
+          test -d "$app_path"
+          codesign --force --deep --sign - "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" DockPilot-arm64.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DockPilot-arm64
+          path: DockPilot-arm64.zip
+          if-no-files-found: error
+          retention-days: 14
