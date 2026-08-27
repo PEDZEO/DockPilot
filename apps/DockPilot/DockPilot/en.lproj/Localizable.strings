@@ -120,3 +120,6 @@
 "Open Settings" = "Open Settings";
 "Failed to refresh profile: %@" = "Failed to refresh profile: %@";
 "%@ Copy" = "%@ Copy";
+"Switching to %@…" = "Switching to %@…";
+"Profile “%@” activated" = "Profile “%@” activated";
+"Unable to switch profile" = "Unable to switch profile";

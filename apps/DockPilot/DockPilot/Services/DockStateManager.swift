@@ -215,8 +215,20 @@ class DockStateManager: ObservableObject {
     // MARK: - Apply Profile
     
     func applyProfile(_ profile: Profile) async throws {
+        if currentProfileID == profile.id {
+            ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
+            return
+        }
+
+        ProfileSwitchFeedback.shared.showSwitching(to: profile.name)
         let sortedItems = profile.items.sorted { $0.position < $1.position }
-        try await dockUtilService.applyProfile(items: sortedItems)
-        setCurrentProfile(profile)
+        do {
+            try await dockUtilService.applyProfile(items: sortedItems)
+            setCurrentProfile(profile)
+            ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
+        } catch {
+            ProfileSwitchFeedback.shared.showFailure()
+            throw error
+        }
     }
 }

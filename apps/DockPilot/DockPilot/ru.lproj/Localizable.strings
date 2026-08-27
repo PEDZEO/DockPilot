@@ -120,3 +120,6 @@
 "Open Settings" = "Открыть настройки";
 "Failed to refresh profile: %@" = "Не удалось обновить профиль: %@";
 "%@ Copy" = "%@ — копия";
+"Switching to %@…" = "Переключаюсь на %@…";
+"Profile “%@” activated" = "Профиль «%@» включён";
+"Unable to switch profile" = "Не удалось переключить профиль";
