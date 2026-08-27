@@ -33,6 +33,7 @@ struct DockItemInfo {
     let path: String
     let iconData: Data?
     let section: String // "apps" or "others"
+    let isRecent: Bool
 }
 
 class DockUtilService {
@@ -114,7 +115,7 @@ class DockUtilService {
             try await restartDock()
             try await Task.sleep(nanoseconds: 650_000_000)
 
-            let currentItems = try await readCurrentDock()
+            let currentItems = try await readCurrentDockForVerification()
             if profileMatches(expected: sortedItems, actual: currentItems) {
                 print("✅ Profile applied and verified on attempt \(attempt)")
                 return
@@ -130,21 +131,31 @@ class DockUtilService {
 
     private func profileMatches(expected: [DockItem], actual: [DockItemInfo]) -> Bool {
         let expectedItems = expected.filter { $0.type != .spacer }
-        guard expectedItems.count == actual.count else { return false }
 
-        // Dock stores the apps and others sections independently. A folder may
-        // have a lower global position than a later app in an imported profile,
-        // but dockutil always lists every app before every folder. Compare order
-        // inside each section instead of treating both sections as one list.
-        return ["apps", "others"].allSatisfy { section in
-            let expectedSection = expectedItems.filter { $0.section == section }
-            let actualSection = actual.filter { $0.section == section }
-            guard expectedSection.count == actualSection.count else { return false }
-
-            return zip(expectedSection, actualSection).allSatisfy { expectedItem, actualItem in
+        // A running app can temporarily remain in recentApps even after dockutil
+        // adds it to a profile. Count it as present, but never require or import
+        // unrelated recent apps.
+        let allExpectedItemsExist = expectedItems.allSatisfy { expectedItem in
+            actual.contains { actualItem in
                 itemsMatch(expected: expectedItem, actual: actualItem)
             }
         }
+
+        let noUnexpectedPersistentItems = actual
+            .filter { !$0.isRecent }
+            .allSatisfy { actualItem in
+                expectedItems.contains { expectedItem in
+                    itemsMatch(expected: expectedItem, actual: actualItem)
+                }
+            }
+
+        return allExpectedItemsExist && noUnexpectedPersistentItems
+    }
+
+    private func readCurrentDockForVerification() async throws -> [DockItemInfo] {
+        let output = try await runDockutilCommand(["--list"])
+        return try parseDockutilOutput(output, includeRecentApps: true)
+            .filter { !isSystemManaged($0.path) }
     }
 
     private func itemsMatch(expected expectedItem: DockItem, actual actualItem: DockItemInfo) -> Bool {
@@ -428,7 +439,10 @@ class DockUtilService {
     }
     
     /// Parses dockutil --list output into DockItemInfo array
-    private func parseDockutilOutput(_ output: String) throws -> [DockItemInfo] {
+    private func parseDockutilOutput(
+        _ output: String,
+        includeRecentApps: Bool = false
+    ) throws -> [DockItemInfo] {
         var items: [DockItemInfo] = []
         let lines = output.components(separatedBy: .newlines).filter { !$0.isEmpty }
         
@@ -443,7 +457,8 @@ class DockUtilService {
             
             // Map dockutil section names to our section names
             let section: String
-            if dockSection == "persistentApps" {
+            let isRecent = dockSection == "recentApps"
+            if dockSection == "persistentApps" || (includeRecentApps && isRecent) {
                 section = "apps"
             } else if dockSection == "persistentOthers" {
                 section = "others"
@@ -481,7 +496,14 @@ class DockUtilService {
             // Extract icon data for apps and folders
             let iconData = extractIconData(for: cleanPath, type: type)
             
-            items.append(DockItemInfo(type: type, name: name, path: cleanPath, iconData: iconData, section: section))
+            items.append(DockItemInfo(
+                type: type,
+                name: name,
+                path: cleanPath,
+                iconData: iconData,
+                section: section,
+                isRecent: isRecent
+            ))
         }
         
         print("✅ Parsed \(items.count) items from Dock (apps and others sections)")
