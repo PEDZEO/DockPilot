@@ -16,13 +16,13 @@ enum DockUtilError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .dockutilNotFound:
-            return "dockutil is not installed. Please install it with: brew install dockutil"
+            return AppLocalization.string("dockutil is not installed. Please install it with: brew install dockutil")
         case .commandFailed(let message):
-            return "Dock command failed: \(message)"
+            return AppLocalization.string("Dock command failed: %@", message)
         case .parsingFailed:
-            return "Failed to read Dock configuration"
+            return AppLocalization.string("Failed to read Dock configuration")
         case .permissionDenied:
-            return "Permission denied. Please grant necessary permissions in System Settings."
+            return AppLocalization.string("Permission denied. Please grant necessary permissions in System Settings.")
         }
     }
 }

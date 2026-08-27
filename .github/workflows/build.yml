@@ -24,6 +24,16 @@ jobs:
           sw_vers
           xcodebuild -version
 
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project apps/DockPilot/DockPilot.xcodeproj \
+            -scheme DockPilot \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build-tests \
+            -only-testing:DockPilotTests \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Build release app
         run: |
           xcodebuild build \

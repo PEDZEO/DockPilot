@@ -13,6 +13,7 @@ struct ProfileDetailView: View {
     @Binding var isRefreshing: Bool
     
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @State private var showingAddApps = false
     @State private var showingAddFolders = false
     
@@ -47,7 +48,7 @@ struct ProfileDetailView: View {
             }
         }
         .navigationTitle(profile.name)
-        .navigationSubtitle("\(sortedItems.count) item\(sortedItems.count == 1 ? "" : "s")")
+        .navigationSubtitle(AppLocalization.string("%d items", locale: locale, sortedItems.count))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -255,4 +256,3 @@ struct DockItemRow: View {
         }
     }
 }
-

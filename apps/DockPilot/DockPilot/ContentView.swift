@@ -9,6 +9,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @StateObject private var dockStateManager: DockStateManager
     
     @State private var selectedProfile: Profile?
@@ -108,7 +109,11 @@ struct ContentView: View {
         do {
             try await dockStateManager.applyProfile(profile)
         } catch {
-            errorMessage = "Failed to apply profile: \(error.localizedDescription)"
+            errorMessage = AppLocalization.string(
+                "Failed to apply profile: %@",
+                locale: locale,
+                error.localizedDescription
+            )
             showingError = true
         }
     }
@@ -120,7 +125,11 @@ struct ContentView: View {
         do {
             try await dockStateManager.refreshProfileFromDock(profile)
         } catch {
-            errorMessage = "Failed to refresh profile: \(error.localizedDescription)"
+            errorMessage = AppLocalization.string(
+                "Failed to refresh profile: %@",
+                locale: locale,
+                error.localizedDescription
+            )
             showingError = true
         }
         
@@ -129,7 +138,7 @@ struct ContentView: View {
     
     private func duplicateProfile(_ profile: Profile) {
         let duplicate = Profile(
-            name: "\(profile.name) Copy",
+            name: AppLocalization.string("%@ Copy", locale: locale, profile.name),
             isDefault: false,
             sortOrder: profile.sortOrder + 1
         )

@@ -11,7 +11,9 @@ import AppKit
 struct MenuBarView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.locale) private var locale
     @EnvironmentObject private var updateChecker: UpdateChecker
+    @StateObject private var shortcutPreferences = ShortcutPreferences.shared
     @Query(sort: [
         SortDescriptor(\Profile.sortOrder),
         SortDescriptor(\Profile.creationDate),
@@ -51,8 +53,9 @@ struct MenuBarView: View {
                             
                             Spacer()
 
-                            if let shortcutIndex = shortcutIndex(for: profile) {
-                                Text("⌥\(shortcutIndex)")
+                            let shortcut = shortcutPreferences.shortcut(for: profile.id)
+                            if shortcut != .disabled {
+                                Text(shortcut.label)
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundColor(.secondary)
                             }
@@ -146,7 +149,11 @@ struct MenuBarView: View {
         // If no update is available after a manual check, show confirmation
         if !updateChecker.isUpdateAvailable {
             await MainActor.run {
-                errorMessage = "You're running the latest version (\(updateChecker.currentVersion))"
+                errorMessage = AppLocalization.string(
+                    "You're running the latest version (%@)",
+                    locale: locale,
+                    updateChecker.currentVersion
+                )
                 showingError = true
             }
         }
@@ -162,7 +169,11 @@ struct MenuBarView: View {
             print("✅ Applied profile '\(profile.name)' from menu bar")
         } catch {
             await MainActor.run {
-                errorMessage = "Failed to apply profile: \(error.localizedDescription)"
+                errorMessage = AppLocalization.string(
+                    "Failed to apply profile: %@",
+                    locale: locale,
+                    error.localizedDescription
+                )
                 showingError = true
             }
         }
@@ -189,12 +200,4 @@ struct MenuBarView: View {
         }
     }
 
-    private func shortcutIndex(for profile: Profile) -> Int? {
-        guard !profile.isDefault else { return nil }
-        let shortcutProfiles = profiles.filter { !$0.isDefault }.prefix(9)
-        guard let index = shortcutProfiles.firstIndex(where: { $0.id == profile.id }) else {
-            return nil
-        }
-        return index + 1
-    }
 }

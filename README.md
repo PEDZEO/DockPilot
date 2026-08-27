@@ -36,6 +36,8 @@ extra taskbar, or separate launcher to manage.
 - apps, folders, links, and spacers inside a profile;
 - quick switching from the macOS menu bar;
 - global shortcuts from `⌥1` through `⌥9`;
+- per-profile shortcut assignment with automatic conflict resolution;
+- English and Russian interface languages, switchable without restarting;
 - capture the current Dock into a selected profile;
 - profile backup import and export;
 - automatic update checks against DockPilot GitHub releases;
@@ -44,7 +46,8 @@ extra taskbar, or separate launcher to manage.
 
 ## Keyboard shortcuts
 
-Non-default profiles receive shortcuts in their displayed order:
+Non-default profiles receive initial shortcuts in their displayed order. You
+can then change or disable each assignment under **Settings → Global Shortcuts**:
 
 | Profile | Shortcut |
 |---|---:|
@@ -86,10 +89,8 @@ build produces `DockPilot-arm64.zip`, retained as an artifact for 14 days.
 
 ## Roadmap
 
-- customizable shortcuts for every profile;
 - automatic switching with macOS Focus modes;
 - a dedicated gaming-profile workflow;
-- an original DockPilot icon and visual identity;
 - signed and notarized releases.
 
 ## License

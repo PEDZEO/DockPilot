@@ -6,7 +6,6 @@
 
 import SwiftUI
 import SwiftData
-import AppKit
 
 @main
 struct DockPilotApp: App {
@@ -56,6 +55,7 @@ struct DockPilotApp: App {
                         await initializeApp()
                     }
             }
+            .environment(\.locale, appSettings.language.locale)
         }
         // Attach the container ONCE at the scene level
         .modelContainer(container)
@@ -67,6 +67,7 @@ struct DockPilotApp: App {
 
         Settings {
             SettingsView(appSettings: appSettings)
+                .environment(\.locale, appSettings.language.locale)
         }
         .modelContainer(container)
 
@@ -75,9 +76,11 @@ struct DockPilotApp: App {
                 MenuBarView()
                     .environmentObject(appSettings)
                     .environmentObject(updateChecker)
+                    .environment(\.locale, appSettings.language.locale)
             } else {
                 Text("Initializing...")
                     .foregroundColor(.secondary)
+                    .environment(\.locale, appSettings.language.locale)
             }
         }
         // Attach the SAME container to the menu bar scene
@@ -103,11 +106,7 @@ struct DockPilotApp: App {
 
         isInitialized = true
 
-        GlobalHotKeyManager.shared.registerProfileShortcuts { slot in
-            Task { @MainActor in
-                await applyProfileFromHotKey(slot: slot, context: context)
-            }
-        }
+        ProfileShortcutCoordinator.shared.start(context: context)
 
         // Check for updates on app launch (silent check)
         Task {
@@ -115,29 +114,4 @@ struct DockPilotApp: App {
         }
     }
 
-    @MainActor
-    private func applyProfileFromHotKey(slot: Int, context: ModelContext) async {
-        do {
-            let descriptor = FetchDescriptor<Profile>(
-                sortBy: [
-                    SortDescriptor(\Profile.sortOrder),
-                    SortDescriptor(\Profile.creationDate),
-                ]
-            )
-            let profiles = try context.fetch(descriptor).filter { !$0.isDefault }
-
-            guard profiles.indices.contains(slot - 1) else {
-                NSSound.beep()
-                return
-            }
-
-            let profile = profiles[slot - 1]
-            let stateManager = DockStateManager(context: context)
-            try await stateManager.applyProfile(profile)
-            print("✅ Applied profile '\(profile.name)' with ⌥\(slot)")
-        } catch {
-            print("❌ Failed to apply profile from hot key: \(error.localizedDescription)")
-            NSSound.beep()
-        }
-    }
 }

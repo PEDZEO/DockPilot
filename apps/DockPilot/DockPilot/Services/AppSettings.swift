@@ -16,6 +16,13 @@ class AppSettings: ObservableObject {
     
     private let showInDockKey = "DockPilot_ShowInDock"
     private let launchAtLoginKey = "DockPilot_LaunchAtLogin"
+    private let languageKey = "DockPilot_Language"
+
+    @Published var language: AppLanguage {
+        didSet {
+            UserDefaults.standard.set(language.rawValue, forKey: languageKey)
+        }
+    }
     
     @Published var showInDock: Bool {
         didSet {
@@ -32,6 +39,9 @@ class AppSettings: ObservableObject {
     }
     
     init() {
+        let savedLanguage = UserDefaults.standard.string(forKey: languageKey)
+        self.language = AppLanguage(rawValue: savedLanguage ?? "") ?? .system
+
         // Default to showing in Dock
         self.showInDock = UserDefaults.standard.object(forKey: showInDockKey) as? Bool ?? true
         
@@ -79,4 +89,3 @@ class AppSettings: ObservableObject {
         }
     }
 }
-

@@ -20,6 +20,7 @@ struct AddAppsView: View {
     let profile: Profile
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     
     @State private var availableApps: [AppInfo] = []
     @State private var selectedAppPaths: Set<String> = []
@@ -163,18 +164,18 @@ struct AddAppsView: View {
                 if addedCount > 0 || removedCount > 0 {
                     VStack(alignment: .leading, spacing: 2) {
                         if addedCount > 0 {
-                            Text("+\(addedCount) app\(addedCount == 1 ? "" : "s") to add")
+                            Text(AppLocalization.string("+%d apps to add", locale: locale, addedCount))
                                 .foregroundColor(.green)
                                 .font(.caption)
                         }
                         if removedCount > 0 {
-                            Text("-\(removedCount) app\(removedCount == 1 ? "" : "s") to remove")
+                            Text(AppLocalization.string("-%d apps to remove", locale: locale, removedCount))
                                 .foregroundColor(.red)
                                 .font(.caption)
                         }
                     }
                 } else {
-                    Text("\(selectedAppPaths.count) app\(selectedAppPaths.count == 1 ? "" : "s") selected")
+                    Text(AppLocalization.string("%d apps selected", locale: locale, selectedAppPaths.count))
                         .foregroundColor(.secondary)
                 }
                 
@@ -404,4 +405,3 @@ struct AddAppsView: View {
         }
     }
 }
-

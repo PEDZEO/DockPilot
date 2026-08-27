@@ -16,11 +16,11 @@ enum DockStateError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .contextUnavailable:
-            return "Model context is not attached."
+            return AppLocalization.string("Model context is not attached.")
         case .emptyDockSnapshot:
-            return "Unable to read Dock items. Check accessibility permissions and try again."
+            return AppLocalization.string("Unable to read Dock items. Check accessibility permissions and try again.")
         case .persistenceFailed(let message):
-            return "Failed to save Dock data: \(message)"
+            return AppLocalization.string("Failed to save Dock data: %@", message)
         }
     }
 }

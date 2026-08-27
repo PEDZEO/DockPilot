@@ -9,6 +9,8 @@ import SwiftData
 
 struct ProfileListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
+    @StateObject private var shortcutPreferences = ShortcutPreferences.shared
     @Query(sort: \Profile.sortOrder) private var profiles: [Profile]
     
     @Binding var selectedProfile: Profile?
@@ -39,7 +41,7 @@ struct ProfileListView: View {
                             }
                         }
                         
-                        Text("\(profile.items.count) items")
+                        Text(AppLocalization.string("%d items", locale: locale, profile.items.count))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -116,7 +118,11 @@ struct ProfileListView: View {
                 deleteProfile(profile)
             }
         } message: { profile in
-            Text("Are you sure you want to delete '\(profile.name)'? This action cannot be undone.")
+            Text(AppLocalization.string(
+                "Are you sure you want to delete '%@'? This action cannot be undone.",
+                locale: locale,
+                profile.name
+            ))
         }
     }
     
@@ -126,6 +132,7 @@ struct ProfileListView: View {
                 selectedProfile = nil
             }
             modelContext.delete(profile)
+            shortcutPreferences.removeAssignment(for: profile.id)
             do {
                 try modelContext.save()
             } catch {

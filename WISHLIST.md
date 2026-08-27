@@ -1,7 +1,7 @@
 # DockPilot roadmap
 
-- [ ] Let users assign and edit shortcuts per profile.
+- [x] Let users assign and edit shortcuts per profile.
 - [ ] Switch profiles automatically with macOS Focus modes.
 - [ ] Add a dedicated gaming profile workflow.
-- [ ] Create an original DockPilot icon and visual identity.
+- [x] Create an original DockPilot icon and visual identity.
 - [ ] Publish signed and notarized releases.

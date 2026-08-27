@@ -10,6 +10,7 @@ import SwiftData
 struct ProfileFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Query private var existingProfiles: [Profile]
     
     @State private var name: String
@@ -70,7 +71,7 @@ struct ProfileFormView: View {
         }
         
         if isDuplicate {
-            errorMessage = "A profile with this name already exists"
+            errorMessage = AppLocalization.string("A profile with this name already exists", locale: locale)
             return
         }
         
@@ -96,8 +97,11 @@ struct ProfileFormView: View {
             }
             dismiss()
         } catch {
-            errorMessage = "Failed to save profile: \(error.localizedDescription)"
+            errorMessage = AppLocalization.string(
+                "Failed to save profile: %@",
+                locale: locale,
+                error.localizedDescription
+            )
         }
     }
 }
-

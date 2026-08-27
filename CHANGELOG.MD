@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Added English and Russian interface languages with instant switching.
+- Added customizable and conflict-safe shortcuts for individual profiles.
+- Moved shortcut orchestration and persistence into dedicated services.
+- Added an original DockPilot app icon and complete macOS icon set.
+- Added unit tests to the GitHub Actions pipeline.
+
 ## 0.1.0
 
 - Established DockPilot as an independent public repository.

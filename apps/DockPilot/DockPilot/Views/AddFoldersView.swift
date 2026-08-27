@@ -21,6 +21,7 @@ struct AddFoldersView: View {
     let profile: Profile
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     
     @State private var availableFolders: [FolderInfo] = []
     @State private var selectedFolderPaths: Set<String> = []
@@ -177,18 +178,18 @@ struct AddFoldersView: View {
                 if addedCount > 0 || removedCount > 0 {
                     VStack(alignment: .leading, spacing: 2) {
                         if addedCount > 0 {
-                            Text("+\(addedCount) folder\(addedCount == 1 ? "" : "s") to add")
+                            Text(AppLocalization.string("+%d folders to add", locale: locale, addedCount))
                                 .foregroundColor(.green)
                                 .font(.caption)
                         }
                         if removedCount > 0 {
-                            Text("-\(removedCount) folder\(removedCount == 1 ? "" : "s") to remove")
+                            Text(AppLocalization.string("-%d folders to remove", locale: locale, removedCount))
                                 .foregroundColor(.red)
                                 .font(.caption)
                         }
                     }
                 } else {
-                    Text("\(selectedFolderPaths.count) folder\(selectedFolderPaths.count == 1 ? "" : "s") selected")
+                    Text(AppLocalization.string("%d folders selected", locale: locale, selectedFolderPaths.count))
                         .foregroundColor(.secondary)
                 }
                 

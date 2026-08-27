@@ -15,11 +15,11 @@ enum BackupError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .emptyStore:
-            return "There are no profiles to back up yet."
+            return AppLocalization.string("There are no profiles to back up yet.")
         case .invalidFile:
-            return "The selected file is not a valid DockPilot backup."
+            return AppLocalization.string("The selected file is not a valid DockPilot backup.")
         case .persistenceFailure(let message):
-            return "Failed to restore backup: \(message)"
+            return AppLocalization.string("Failed to restore backup: %@", message)
         }
     }
 }

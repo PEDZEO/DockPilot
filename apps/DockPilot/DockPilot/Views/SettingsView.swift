@@ -13,7 +13,9 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @ObservedObject var appSettings: AppSettings
     @StateObject private var updateChecker = UpdateChecker.shared
+    @StateObject private var shortcutPreferences = ShortcutPreferences.shared
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Query(sort: [
         SortDescriptor(\Profile.sortOrder),
         SortDescriptor(\Profile.creationDate),
@@ -32,6 +34,8 @@ struct SettingsView: View {
     
     var body: some View {
         Form {
+            LanguageSettingsSection(appSettings: appSettings)
+
             Section {
                 Toggle("Launch at Login", isOn: $appSettings.launchAtLogin)
                 
@@ -54,31 +58,10 @@ struct SettingsView: View {
                 Text("Appearance")
             }
 
-            Section {
-                let shortcutProfiles = profiles.filter { !$0.isDefault }.prefix(9)
-
-                if shortcutProfiles.isEmpty {
-                    Text("Create a non-default profile to enable a shortcut.")
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(Array(shortcutProfiles.enumerated()), id: \.element.id) { index, profile in
-                        HStack {
-                            Text(profile.name)
-                            Spacer()
-                            Text("⌥\(index + 1)")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-
-                Text("Shortcuts work globally while DockPilot is running. The default profile is not assigned a shortcut.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-            } header: {
-                Text("Global Shortcuts")
-            }
+            ShortcutSettingsSection(
+                profiles: profiles,
+                preferences: shortcutPreferences
+            )
             
             Section {
                 HStack {
@@ -146,7 +129,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 520)
+        .frame(width: 480, height: 620)
         .navigationTitle("Settings")
         .alert("Import Backup", isPresented: $showingImportConfirmation, presenting: pendingImportURL) { url in
             Button("Cancel", role: .cancel) {
@@ -193,9 +176,13 @@ struct SettingsView: View {
             localUpdateAvailable = hasUpdate
             
             if hasUpdate {
-                updateMessage = "Version \(updateChecker.latestVersion) is available!"
+                updateMessage = AppLocalization.string(
+                    "Version %@ is available!",
+                    locale: locale,
+                    updateChecker.latestVersion
+                )
             } else {
-                updateMessage = "You're running the latest version."
+                updateMessage = AppLocalization.string("You're running the latest version.", locale: locale)
             }
             showingUpdateResult = true
         }
@@ -219,10 +206,14 @@ struct SettingsView: View {
         
         do {
             try BackupService.shared.exportBackup(to: url, using: modelContext)
-            backupResultTitle = "Backup Saved"
-            backupResultMessage = "Profiles were saved to \(url.lastPathComponent)."
+            backupResultTitle = AppLocalization.string("Backup Saved", locale: locale)
+            backupResultMessage = AppLocalization.string(
+                "Profiles were saved to %@.",
+                locale: locale,
+                url.lastPathComponent
+            )
         } catch {
-            backupResultTitle = "Backup Failed"
+            backupResultTitle = AppLocalization.string("Backup Failed", locale: locale)
             backupResultMessage = error.localizedDescription
         }
         
@@ -236,10 +227,10 @@ struct SettingsView: View {
         
         do {
             let restored = try BackupService.shared.importBackup(from: url, using: modelContext)
-            backupResultTitle = "Backup Restored"
-            backupResultMessage = "Imported \(restored) profile\(restored == 1 ? "" : "s")."
+            backupResultTitle = AppLocalization.string("Backup Restored", locale: locale)
+            backupResultMessage = AppLocalization.string("Imported %d profiles.", locale: locale, restored)
         } catch {
-            backupResultTitle = "Import Failed"
+            backupResultTitle = AppLocalization.string("Import Failed", locale: locale)
             backupResultMessage = error.localizedDescription
         }
         
@@ -248,7 +239,7 @@ struct SettingsView: View {
     
     private func presentSavePanel() -> URL? {
         let panel = NSSavePanel()
-        panel.title = "Export DockPilot Backup"
+        panel.title = AppLocalization.string("Export DockPilot Backup", locale: locale)
         panel.canCreateDirectories = true
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = defaultBackupFileName()
@@ -257,7 +248,7 @@ struct SettingsView: View {
     
     private func presentOpenPanel() -> URL? {
         let panel = NSOpenPanel()
-        panel.title = "Import DockPilot Backup"
+        panel.title = AppLocalization.string("Import DockPilot Backup", locale: locale)
         panel.allowedContentTypes = [.json]
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
@@ -268,7 +259,11 @@ struct SettingsView: View {
     private func defaultBackupFileName() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm"
-        return "DockPilot Backup \(formatter.string(from: Date())).json"
+        return AppLocalization.string(
+            "DockPilot Backup %@.json",
+            locale: locale,
+            formatter.string(from: Date())
+        )
     }
 }
 
