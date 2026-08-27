@@ -19,7 +19,7 @@ struct ContentView: View {
     @State private var showingError = false
     
     init() {
-        _dockStateManager = StateObject(wrappedValue: DockStateManager())
+        _dockStateManager = StateObject(wrappedValue: DockStateManager.shared)
     }
     
     var body: some View {
@@ -51,7 +51,7 @@ struct ContentView: View {
                         }
                         .labelStyle(.titleAndIcon)
                         .help("Update this profile with the current Dock items")
-                        .disabled(isRefreshing)
+                        .disabled(isRefreshing || dockStateManager.isApplyingProfile)
                         
                         Button {
                             Task {
@@ -62,7 +62,7 @@ struct ContentView: View {
                         }
                         .labelStyle(.titleAndIcon)
                         .help("Apply this profile's items to your Dock")
-                        .disabled(isRefreshing)
+                        .disabled(isRefreshing || dockStateManager.isApplyingProfile)
                     }
                 }
             } else {

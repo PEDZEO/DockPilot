@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import QuartzCore
 import SwiftUI
 
@@ -11,6 +12,7 @@ import SwiftUI
 final class ProfileSwitchFeedback {
     static let shared = ProfileSwitchFeedback()
 
+    private let model = ProfileSwitchHUDModel()
     private var panel: NSPanel?
     private var dismissTask: Task<Void, Never>?
 
@@ -21,6 +23,7 @@ final class ProfileSwitchFeedback {
             message: AppLocalization.string("Switching to %@…", profileName),
             symbol: "arrow.triangle.2.circlepath",
             tint: .accentColor,
+            isProgress: true,
             dismissAfter: nil
         )
     }
@@ -30,7 +33,8 @@ final class ProfileSwitchFeedback {
             message: AppLocalization.string("Profile “%@” activated", profileName),
             symbol: "checkmark.circle.fill",
             tint: .green,
-            dismissAfter: 1.35
+            isProgress: false,
+            dismissAfter: 1.15
         )
     }
 
@@ -39,7 +43,8 @@ final class ProfileSwitchFeedback {
             message: AppLocalization.string("Unable to switch profile"),
             symbol: "exclamationmark.triangle.fill",
             tint: .orange,
-            dismissAfter: 1.8
+            isProgress: false,
+            dismissAfter: 1.7
         )
     }
 
@@ -47,24 +52,30 @@ final class ProfileSwitchFeedback {
         message: String,
         symbol: String,
         tint: Color,
+        isProgress: Bool,
         dismissAfter delay: TimeInterval?
     ) {
         dismissTask?.cancel()
+        model.update(message: message, symbol: symbol, tint: tint, isProgress: isProgress)
 
         let panel = panel ?? makePanel()
-        let content = ProfileSwitchHUDView(message: message, symbol: symbol, tint: tint)
-        panel.contentView = NSHostingView(rootView: content)
-        panel.setContentSize(NSSize(width: 300, height: 58))
-        position(panel)
+        panel.setContentSize(NSSize(width: 380, height: 58))
+        let targetOrigin = panelOrigin(for: panel)
 
         if !panel.isVisible {
+            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             panel.alphaValue = 0
+            panel.setFrameOrigin(NSPoint(x: targetOrigin.x, y: targetOrigin.y - (reduceMotion ? 0 : 7)))
             panel.orderFrontRegardless()
+
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.18
+                context.duration = reduceMotion ? 0.08 : 0.2
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().alphaValue = 1
+                panel.animator().setFrameOrigin(targetOrigin)
             }
+        } else {
+            panel.setFrameOrigin(targetOrigin)
         }
 
         if let delay {
@@ -90,24 +101,24 @@ final class ProfileSwitchFeedback {
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
+        panel.contentView = NSHostingView(rootView: ProfileSwitchHUDView(model: model))
         self.panel = panel
         return panel
     }
 
-    private func position(_ panel: NSPanel) {
-        let screen = NSScreen.main ?? NSScreen.screens.first
-        guard let visibleFrame = screen?.visibleFrame else { return }
-        let frame = panel.frame
-        panel.setFrameOrigin(NSPoint(
-            x: visibleFrame.midX - frame.width / 2,
+    private func panelOrigin(for panel: NSPanel) -> NSPoint {
+        let visibleFrame = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame ?? .zero
+        return NSPoint(
+            x: visibleFrame.midX - panel.frame.width / 2,
             y: visibleFrame.minY + 72
-        ))
+        )
     }
 
     private func dismiss() {
         guard let panel, panel.isVisible else { return }
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
+            context.duration = reduceMotion ? 0.08 : 0.18
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
         } completionHandler: {
@@ -116,21 +127,46 @@ final class ProfileSwitchFeedback {
     }
 }
 
+@MainActor
+private final class ProfileSwitchHUDModel: ObservableObject {
+    @Published private(set) var message = ""
+    @Published private(set) var symbol = "arrow.triangle.2.circlepath"
+    @Published private(set) var tint: Color = .accentColor
+    @Published private(set) var isProgress = true
+
+    func update(message: String, symbol: String, tint: Color, isProgress: Bool) {
+        withAnimation(.easeInOut(duration: 0.16)) {
+            self.message = message
+            self.symbol = symbol
+            self.tint = tint
+            self.isProgress = isProgress
+        }
+    }
+}
+
 private struct ProfileSwitchHUDView: View {
-    let message: String
-    let symbol: String
-    let tint: Color
+    @ObservedObject var model: ProfileSwitchHUDModel
 
     var body: some View {
         HStack(spacing: 11) {
-            Image(systemName: symbol)
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(tint)
-                .contentTransition(.symbolEffect(.replace))
+            Group {
+                if model.isProgress {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(model.tint)
+                } else {
+                    Image(systemName: model.symbol)
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(model.tint)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .frame(width: 22, height: 22)
 
-            Text(message)
+            Text(model.message)
                 .font(.system(size: 14, weight: .semibold))
                 .lineLimit(1)
+                .minimumScaleFactor(0.82)
         }
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -31,9 +31,11 @@ final class GlobalHotKeyManager {
 
     private init() {}
 
-    func registerProfileShortcuts(action: @escaping (Int) -> Void) {
+    func registerProfileShortcuts(slots: Set<Int>, action: @escaping (Int) -> Void) {
         unregisterProfileShortcuts()
         self.action = action
+
+        guard !slots.isEmpty else { return }
 
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
@@ -78,11 +80,12 @@ final class GlobalHotKeyManager {
             return
         }
 
-        for (offset, keyCode) in Self.numberKeyCodes.enumerated() {
+        for slot in slots.sorted() where (1...Self.numberKeyCodes.count).contains(slot) {
+            let keyCode = Self.numberKeyCodes[slot - 1]
             var hotKeyRef: EventHotKeyRef?
             let hotKeyID = EventHotKeyID(
                 signature: Self.signature,
-                id: UInt32(offset + 1)
+                id: UInt32(slot)
             )
             let result = RegisterEventHotKey(
                 keyCode,
@@ -96,7 +99,7 @@ final class GlobalHotKeyManager {
             if result == noErr, let hotKeyRef {
                 hotKeyRefs.append(hotKeyRef)
             } else {
-                print("Failed to register ⌥\(offset + 1): \(result)")
+                print("Failed to register ⌥\(slot): \(result)")
             }
         }
     }

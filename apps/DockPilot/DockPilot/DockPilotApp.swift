@@ -95,7 +95,7 @@ struct DockPilotApp: App {
     @MainActor
     private func initializeApp() async {
         let context = container.mainContext
-        let stateManager = DockStateManager()
+        let stateManager = DockStateManager.shared
         stateManager.attach(context: context)
 
         // Safer first-launch flow: only create defaults if the store is truly empty
@@ -111,8 +111,10 @@ struct DockPilotApp: App {
         ProfileShortcutCoordinator.shared.start(context: context)
 
         // Check for updates on app launch (silent check)
-        Task {
-            await updateChecker.checkForUpdates(silent: true)
+        if updateChecker.shouldPerformAutomaticCheck {
+            Task {
+                await updateChecker.checkForUpdates(silent: true)
+            }
         }
     }
 

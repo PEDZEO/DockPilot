@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import SwiftData
 
 @MainActor
@@ -11,10 +12,11 @@ final class ProfileShortcutCoordinator {
     static let shared = ProfileShortcutCoordinator()
 
     private let preferences = ShortcutPreferences.shared
-    private let dockStateManager = DockStateManager()
+    private let dockStateManager = DockStateManager.shared
     private var modelContext: ModelContext?
     private var activeSlot: Int?
     private var pendingSlot: Int?
+    private var cancellables = Set<AnyCancellable>()
 
     private init() {}
 
@@ -28,7 +30,17 @@ final class ProfileShortcutCoordinator {
             print("Failed to initialize shortcut assignments: \(error.localizedDescription)")
         }
 
-        GlobalHotKeyManager.shared.registerProfileShortcuts { [weak self] slot in
+        preferences.$assignments
+            .map { Set($0.values.map(\.rawValue)) }
+            .removeDuplicates()
+            .sink { [weak self] slots in
+                self?.registerShortcuts(slots: slots)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func registerShortcuts(slots: Set<Int>) {
+        GlobalHotKeyManager.shared.registerProfileShortcuts(slots: slots) { [weak self] slot in
             Task { @MainActor in
                 await self?.applyProfile(assignedTo: slot)
             }

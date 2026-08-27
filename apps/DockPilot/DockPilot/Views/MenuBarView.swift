@@ -20,12 +20,11 @@ struct MenuBarView: View {
     ]) private var profiles: [Profile]
     
     @StateObject private var dockStateManager: DockStateManager
-    @State private var isApplying = false
     @State private var errorMessage: String?
     @State private var showingError = false
     
     init() {
-        _dockStateManager = StateObject(wrappedValue: DockStateManager())
+        _dockStateManager = StateObject(wrappedValue: DockStateManager.shared)
     }
     
     var body: some View {
@@ -65,7 +64,7 @@ struct MenuBarView: View {
                                     .font(.caption)
                             }
                             
-                            if isApplying && profile.id == dockStateManager.currentProfileID {
+                            if dockStateManager.isApplyingProfile && profile.id == dockStateManager.activeProfileID {
                                 ProgressView()
                                     .scaleEffect(0.5)
                             }
@@ -75,7 +74,7 @@ struct MenuBarView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .disabled(isApplying)
+                    .disabled(dockStateManager.isApplyingProfile)
                 }
             }
             
@@ -160,10 +159,6 @@ struct MenuBarView: View {
     }
     
     private func applyProfile(_ profile: Profile) async {
-        await MainActor.run {
-            isApplying = true
-        }
-        
         do {
             try await dockStateManager.applyProfile(profile)
             print("✅ Applied profile '\(profile.name)' from menu bar")
@@ -178,9 +173,6 @@ struct MenuBarView: View {
             }
         }
         
-        await MainActor.run {
-            isApplying = false
-        }
     }
     
     private func activateApp() {

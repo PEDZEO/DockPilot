@@ -21,6 +21,7 @@ class UpdateChecker: ObservableObject {
     
     private let githubRepo = "PEDZEO/DockPilot"
     private let lastCheckKey = "DockPilot_LastUpdateCheck"
+    private let automaticCheckInterval: TimeInterval = 12 * 60 * 60
     
     private init() {
         self.lastCheckDate = UserDefaults.standard.object(forKey: lastCheckKey) as? Date
@@ -33,6 +34,11 @@ class UpdateChecker: ObservableObject {
         }
         return "0.0.0"
     }
+
+    var shouldPerformAutomaticCheck: Bool {
+        guard let lastCheckDate else { return true }
+        return Date().timeIntervalSince(lastCheckDate) >= automaticCheckInterval
+    }
     
     /// Check for updates from GitHub releases
     func checkForUpdates(silent: Bool = false, notify: Bool = true) async {
@@ -40,13 +46,13 @@ class UpdateChecker: ObservableObject {
         
         isChecking = true
         defer { isChecking = false }
+
+        // Throttle automatic retries even when GitHub is temporarily unavailable.
+        lastCheckDate = Date()
+        UserDefaults.standard.set(lastCheckDate, forKey: lastCheckKey)
         
         do {
             let latest = try await fetchLatestRelease()
-            
-            // Save last check date
-            lastCheckDate = Date()
-            UserDefaults.standard.set(lastCheckDate, forKey: lastCheckKey)
             
             // Compare versions
             if compareVersions(current: currentVersion, latest: latest.version) {
@@ -85,6 +91,7 @@ class UpdateChecker: ObservableObject {
         
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 10
         
         let (data, response) = try await URLSession.shared.data(for: request)
         

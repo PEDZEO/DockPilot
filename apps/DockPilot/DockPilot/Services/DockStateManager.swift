@@ -27,10 +27,16 @@ enum DockStateError: LocalizedError {
 
 @MainActor
 class DockStateManager: ObservableObject {
+    static let shared = DockStateManager()
+
     private var modelContext: ModelContext?
     private let dockUtilService = DockUtilService.shared
+    private var lastAppliedProfileID: UUID?
+    private var operationWaiters: [CheckedContinuation<Void, Never>] = []
     
     @Published var currentProfileID: UUID?
+    @Published private(set) var isApplyingProfile = false
+    @Published private(set) var activeProfileID: UUID?
     
     private let firstLaunchKey = "DockPilot_HasLaunched"
     private let firstLaunchTimestampKey = "DockPilot_FirstLaunchTimestamp"
@@ -85,6 +91,45 @@ class DockStateManager: ObservableObject {
             if currentProfileID == nil, let firstProfile = existingProfiles.first {
                 setCurrentProfile(firstProfile)
                 print("📌 Set current profile to: \(firstProfile.name)")
+            }
+
+            try removeLegacySystemManagedItems(from: existingProfiles, context: context)
+        }
+    }
+
+    /// Earlier DockPilot versions captured Apps.app as a regular profile item.
+    /// Remove those stale records once; the real launcher remains untouched in Dock.
+    private func removeLegacySystemManagedItems(
+        from profiles: [Profile],
+        context: ModelContext
+    ) throws {
+        var changed = false
+
+        for profile in profiles {
+            let staleItems = profile.items.filter {
+                DockSystemItemPolicy.isSystemManaged(path: $0.path)
+            }
+            guard !staleItems.isEmpty else { continue }
+
+            for item in staleItems {
+                context.delete(item)
+            }
+
+            let remainingItems = profile.items
+                .filter { item in !staleItems.contains(where: { $0.id == item.id }) }
+                .sorted { $0.position < $1.position }
+            for (index, item) in remainingItems.enumerated() {
+                item.position = index
+            }
+            changed = true
+        }
+
+        if changed {
+            do {
+                try context.save()
+                print("🧹 Removed legacy system-managed items from saved profiles")
+            } catch {
+                throw DockStateError.persistenceFailed(error.localizedDescription)
             }
         }
     }
@@ -215,15 +260,45 @@ class DockStateManager: ObservableObject {
     // MARK: - Apply Profile
     
     func applyProfile(_ profile: Profile) async throws {
+        await acquireOperation()
+        defer { releaseOperation() }
+
+        if lastAppliedProfileID == profile.id {
+            ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
+            return
+        }
+
+        activeProfileID = profile.id
+        defer { activeProfileID = nil }
         ProfileSwitchFeedback.shared.showSwitching(to: profile.name)
         let sortedItems = profile.items.sorted { $0.position < $1.position }
         do {
             try await dockUtilService.applyProfile(items: sortedItems)
             setCurrentProfile(profile)
+            lastAppliedProfileID = profile.id
             ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
         } catch {
             ProfileSwitchFeedback.shared.showFailure()
             throw error
+        }
+    }
+
+    private func acquireOperation() async {
+        if isApplyingProfile {
+            await withCheckedContinuation { continuation in
+                operationWaiters.append(continuation)
+            }
+        }
+        isApplyingProfile = true
+    }
+
+    private func releaseOperation() {
+        if operationWaiters.isEmpty {
+            isApplyingProfile = false
+        } else {
+            // Keep the gate closed until the resumed operation owns it.
+            let next = operationWaiters.removeFirst()
+            next.resume()
         }
     }
 }
