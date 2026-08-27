@@ -124,6 +124,31 @@ struct DockPilotTests {
         #expect(!DockProfileVerifier.matches(expected: [chat], actual: actual))
     }
 
+    @Test @MainActor
+    func verifierTreatsEquivalentUnicodePathsAsTheSameItem() {
+        let decomposedPath = "/Applications/Яндекс Музыка.app".decomposedStringWithCanonicalMapping
+        let precomposedPath = decomposedPath.precomposedStringWithCanonicalMapping
+        let music = DockItem(
+            type: .app,
+            name: "Яндекс Музыка",
+            path: decomposedPath,
+            position: 0
+        )
+        let actual = [
+            DockItemInfo(
+                type: .app,
+                name: "Яндекс Музыка",
+                path: precomposedPath,
+                iconData: nil,
+                section: "apps",
+                isRecent: false
+            ),
+        ]
+
+        #expect(DockProfileVerifier.matches(expected: [music], actual: actual))
+        #expect(DockProfileVerifier.differences(expected: [music], actual: actual).isEmpty)
+    }
+
     @Test
     func systemAppsLauncherIsAlwaysProtected() {
         #expect(DockSystemItemPolicy.isSystemManaged(path: "/System/Applications/Apps.app"))

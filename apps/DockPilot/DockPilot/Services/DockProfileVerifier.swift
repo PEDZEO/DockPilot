@@ -7,31 +7,50 @@ import Foundation
 
 enum DockProfileVerifier {
     static func matches(expected: [DockItem], actual: [DockItemInfo]) -> Bool {
-        let expectedItems = expected.filter { $0.type != .spacer }
+        differences(expected: expected, actual: actual).isEmpty
+    }
 
-        let allExpectedItemsExist = expectedItems.allSatisfy { expectedItem in
-            actual.contains { itemMatches(expected: expectedItem, actual: $0) }
+    /// Returns compact, deterministic diagnostics for a failed comparison.
+    /// Keeping this separate from the Dock mutation code makes matching easy to
+    /// regression-test and lets us explain a retry without doing extra I/O.
+    static func differences(expected: [DockItem], actual: [DockItemInfo]) -> [String] {
+        let expectedItems = expected.filter { $0.type != .spacer }
+        var differences: [String] = []
+
+        let missingItems = expectedItems.filter { expectedItem in
+            !actual.contains { itemMatches(expected: expectedItem, actual: $0) }
+        }
+        if !missingItems.isEmpty {
+            differences.append("missing: \(missingItems.map(\.path).joined(separator: ", "))")
         }
 
         let persistentActualItems = actual.filter { !$0.isRecent }
-        let noUnexpectedPersistentItems = persistentActualItems.allSatisfy { actualItem in
-            expectedItems.contains { itemMatches(expected: $0, actual: actualItem) }
+        let unexpectedItems = persistentActualItems.filter { actualItem in
+            !expectedItems.contains { itemMatches(expected: $0, actual: actualItem) }
+        }
+        if !unexpectedItems.isEmpty {
+            differences.append("unexpected: \(unexpectedItems.map(\.path).joined(separator: ", "))")
         }
 
-        let persistentOrderMatches = ["apps", "others"].allSatisfy { section in
+        for section in ["apps", "others"] {
             let actualSection = persistentActualItems.filter { $0.section == section }
             let expectedSection = expectedItems.filter { expectedItem in
                 expectedItem.section == section && actualSection.contains {
                     itemMatches(expected: expectedItem, actual: $0)
                 }
             }
-            guard expectedSection.count == actualSection.count else { return false }
-            return zip(expectedSection, actualSection).allSatisfy {
+            let orderMatches = expectedSection.count == actualSection.count && zip(expectedSection, actualSection).allSatisfy {
                 itemMatches(expected: $0.0, actual: $0.1)
+            }
+            if !orderMatches {
+                differences.append(
+                    "\(section) order expected: \(expectedSection.map(\.path).joined(separator: " | ")); " +
+                    "actual: \(actualSection.map(\.path).joined(separator: " | "))"
+                )
             }
         }
 
-        return allExpectedItemsExist && noUnexpectedPersistentItems && persistentOrderMatches
+        return differences
     }
 
     static func itemMatches(expected: DockItem, actual: DockItemInfo) -> Bool {
@@ -48,6 +67,9 @@ enum DockProfileVerifier {
     }
 
     private static func normalizedFilePath(_ path: String) -> String {
-        URL(fileURLWithPath: path).standardizedFileURL.path
+        URL(fileURLWithPath: path)
+            .standardizedFileURL
+            .path
+            .precomposedStringWithCanonicalMapping
     }
 }

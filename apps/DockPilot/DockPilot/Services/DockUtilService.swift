@@ -49,9 +49,14 @@ final class DockUtilService {
             .sorted { $0.position < $1.position }
 
         let currentItems = try await readCurrentDockForVerification()
-        if DockProfileVerifier.matches(expected: validItems, actual: currentItems) {
+        let initialDifferences = DockProfileVerifier.differences(
+            expected: validItems,
+            actual: currentItems
+        )
+        if initialDifferences.isEmpty {
             return
         }
+        print("Dock profile differs before apply: \(initialDifferences.joined(separator: "; "))")
 
         for attempt in 1...2 {
             try await clearManagedDockItems()
