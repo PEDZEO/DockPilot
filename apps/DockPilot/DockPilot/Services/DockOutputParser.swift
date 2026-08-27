@@ -49,7 +49,7 @@ struct DockOutputParser {
         }
 
         let path = normalizedPath(rawPath)
-        let type = itemType(for: path)
+        let type = itemType(name: name, path: path)
         let iconData = includeIcons ? extractIconData(for: path, type: type) : nil
 
         return DockItemInfo(
@@ -73,7 +73,9 @@ struct DockOutputParser {
         return path.removingPercentEncoding ?? path
     }
 
-    private func itemType(for path: String) -> DockItemType {
+    private func itemType(name: String, path: String) -> DockItemType {
+        // dockutil represents spacer tiles as an empty name and empty path.
+        if name.isEmpty && path.isEmpty { return .spacer }
         if path.hasSuffix(".app") { return .app }
         if path.hasPrefix("http://") || path.hasPrefix("https://") { return .url }
         if path.contains("spacer") { return .spacer }

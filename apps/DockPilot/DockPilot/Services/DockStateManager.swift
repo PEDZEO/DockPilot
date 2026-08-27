@@ -31,7 +31,6 @@ class DockStateManager: ObservableObject {
 
     private var modelContext: ModelContext?
     private let dockUtilService = DockUtilService.shared
-    private var lastAppliedProfileID: UUID?
     private var operationWaiters: [CheckedContinuation<Void, Never>] = []
     
     @Published var currentProfileID: UUID?
@@ -263,11 +262,6 @@ class DockStateManager: ObservableObject {
         await acquireOperation()
         defer { releaseOperation() }
 
-        if lastAppliedProfileID == profile.id {
-            ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
-            return
-        }
-
         activeProfileID = profile.id
         defer { activeProfileID = nil }
         ProfileSwitchFeedback.shared.showSwitching(to: profile.name)
@@ -275,7 +269,6 @@ class DockStateManager: ObservableObject {
         do {
             try await dockUtilService.applyProfile(items: sortedItems)
             setCurrentProfile(profile)
-            lastAppliedProfileID = profile.id
             ProfileSwitchFeedback.shared.showSuccess(profileName: profile.name)
         } catch {
             ProfileSwitchFeedback.shared.showFailure()
@@ -300,5 +293,10 @@ class DockStateManager: ObservableObject {
             let next = operationWaiters.removeFirst()
             next.resume()
         }
+    }
+
+    func clearCurrentProfile() {
+        currentProfileID = nil
+        UserDefaults.standard.removeObject(forKey: currentProfileKey)
     }
 }

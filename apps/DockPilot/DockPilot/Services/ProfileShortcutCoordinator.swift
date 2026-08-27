@@ -23,6 +23,7 @@ final class ProfileShortcutCoordinator {
     func start(context: ModelContext) {
         modelContext = context
         dockStateManager.attach(context: context)
+        cancellables.removeAll()
 
         do {
             preferences.ensureDefaultAssignments(for: try fetchProfiles(context: context))

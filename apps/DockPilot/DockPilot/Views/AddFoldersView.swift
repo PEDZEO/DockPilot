@@ -343,7 +343,8 @@ struct AddFoldersView: View {
         if !foldersToAdd.isEmpty {
             let maxPosition = profile.items.map(\.position).max() ?? -1
             
-            for (index, folderPath) in foldersToAdd.enumerated() {
+            let orderedFolderPaths = availableFolders.map(\.path).filter { foldersToAdd.contains($0) }
+            for (index, folderPath) in orderedFolderPaths.enumerated() {
                 // Find the folder info
                 guard let folderInfo = availableFolders.first(where: { $0.path == folderPath }) else {
                     continue

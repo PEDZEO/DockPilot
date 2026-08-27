@@ -127,6 +127,9 @@ final class BackupService {
                 context.insert(profile)
                 
                 for itemData in backupProfile.items.sorted(by: { $0.position < $1.position }) {
+                    guard !DockSystemItemPolicy.isSystemManaged(path: itemData.path) else {
+                        continue
+                    }
                     let item = DockItem(
                         id: itemData.id,
                         type: itemData.type,
@@ -152,10 +155,11 @@ final class BackupService {
         let descriptor = FetchDescriptor<Profile>(sortBy: [SortDescriptor(\Profile.sortOrder)])
         let restoredProfiles = try context.fetch(descriptor)
         if let selected = restoredProfiles.first(where: { $0.isDefault }) ?? restoredProfiles.first {
-            let stateManager = DockStateManager(context: context)
+            let stateManager = DockStateManager.shared
+            stateManager.attach(context: context)
             stateManager.setCurrentProfile(selected)
         } else {
-            UserDefaults.standard.removeObject(forKey: "DockPilot_CurrentProfile")
+            DockStateManager.shared.clearCurrentProfile()
         }
         
         return backup.profileCount

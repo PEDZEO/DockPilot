@@ -57,6 +57,18 @@ struct DockPilotTests {
         #expect(items[0].iconData == nil)
     }
 
+    @Test
+    func parserRecognizesDockutilSpacerRows() {
+        let output = "\t\tpersistentApps\t/test.plist\t"
+
+        let items = DockOutputParser().parse(output)
+
+        #expect(items.count == 1)
+        #expect(items[0].type == .spacer)
+        #expect(items[0].section == "apps")
+        #expect(items[0].path.isEmpty)
+    }
+
     @Test @MainActor
     func verifierAcceptsRunningAppAndIndependentDockSections() {
         let chat = DockItem(type: .app, name: "Chat", path: "/Applications/Chat.app", position: 0)
@@ -149,11 +161,58 @@ struct DockPilotTests {
         #expect(DockProfileVerifier.differences(expected: [music], actual: actual).isEmpty)
     }
 
+    @Test @MainActor
+    func verifierDoesNotIgnoreSpacerDifferences() {
+        let chat = DockItem(type: .app, name: "Chat", path: "/Applications/Chat.app", position: 0)
+        let spacer = DockItem(type: .spacer, name: "", path: "", position: 1)
+        let actualWithoutSpacer = [
+            DockItemInfo(
+                type: .app,
+                name: "Chat",
+                path: "/Applications/Chat.app",
+                iconData: nil,
+                section: "apps",
+                isRecent: false
+            ),
+        ]
+        let actualWithSpacer = actualWithoutSpacer + [
+            DockItemInfo(
+                type: .spacer,
+                name: "",
+                path: "",
+                iconData: nil,
+                section: "apps",
+                isRecent: false
+            ),
+        ]
+
+        #expect(!DockProfileVerifier.matches(expected: [chat, spacer], actual: actualWithoutSpacer))
+        #expect(DockProfileVerifier.matches(expected: [chat, spacer], actual: actualWithSpacer))
+    }
+
     @Test
     func systemAppsLauncherIsAlwaysProtected() {
         #expect(DockSystemItemPolicy.isSystemManaged(path: "/System/Applications/Apps.app"))
         #expect(DockSystemItemPolicy.isSystemManaged(path: "/System/Applications/Apps.app/"))
         #expect(!DockSystemItemPolicy.isSystemManaged(path: "/System/Applications/Mail.app"))
+    }
+
+    @Test
+    func applicationCatalogDeduplicatesRootsAndSkipsBundleContents() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DockPilotCatalog-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let firstApp = root.appendingPathComponent("First.app")
+        let nestedApp = firstApp.appendingPathComponent("Contents/Hidden.app")
+        let utilityApp = root.appendingPathComponent("Utilities/Second.app")
+        try FileManager.default.createDirectory(at: nestedApp, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: utilityApp, withIntermediateDirectories: true)
+
+        let entries = ApplicationCatalogScanner.scan(roots: [root.path, root.path])
+
+        #expect(entries.map(\.name) == ["First", "Second"])
+        #expect(Set(entries.map(\.path)).count == entries.count)
     }
 
 }

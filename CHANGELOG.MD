@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+- Made profile switching asynchronous, serialized, and faster when the Dock already matches.
+- Preserved the macOS Apps launcher instead of recreating its private system tile.
+- Fixed false profile failures caused by recent apps, mixed Dock sections, and Unicode paths.
+- Added reliable spacer support and stricter profile verification.
+- Reused one lightweight animated status panel and respected Reduce Motion.
+- Moved application discovery off the main thread and reduced unnecessary icon work.
+- Fixed profile creation, deletion, backup restore, and shortcut lifecycle edge cases.
+
 ## 0.2.0
 
 - Added English and Russian interface languages with instant switching.

@@ -15,6 +15,7 @@ final class ProfileSwitchFeedback {
     private let model = ProfileSwitchHUDModel()
     private var panel: NSPanel?
     private var dismissTask: Task<Void, Never>?
+    private var presentationGeneration = 0
 
     private init() {}
 
@@ -56,14 +57,22 @@ final class ProfileSwitchFeedback {
         dismissAfter delay: TimeInterval?
     ) {
         dismissTask?.cancel()
-        model.update(message: message, symbol: symbol, tint: tint, isProgress: isProgress)
+        presentationGeneration &+= 1
+        let generation = presentationGeneration
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        model.update(
+            message: message,
+            symbol: symbol,
+            tint: tint,
+            isProgress: isProgress,
+            animated: !reduceMotion
+        )
 
         let panel = panel ?? makePanel()
         panel.setContentSize(NSSize(width: 380, height: 58))
         let targetOrigin = panelOrigin(for: panel)
 
         if !panel.isVisible {
-            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             panel.alphaValue = 0
             panel.setFrameOrigin(NSPoint(x: targetOrigin.x, y: targetOrigin.y - (reduceMotion ? 0 : 7)))
             panel.orderFrontRegardless()
@@ -75,6 +84,9 @@ final class ProfileSwitchFeedback {
                 panel.animator().setFrameOrigin(targetOrigin)
             }
         } else {
+            // If a new switch starts during the previous fade-out, restore the
+            // panel immediately and invalidate that fade's completion handler.
+            panel.alphaValue = 1
             panel.setFrameOrigin(targetOrigin)
         }
 
@@ -82,7 +94,7 @@ final class ProfileSwitchFeedback {
             dismissTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
-                self?.dismiss()
+                self?.dismiss(generation: generation)
             }
         }
     }
@@ -114,14 +126,19 @@ final class ProfileSwitchFeedback {
         )
     }
 
-    private func dismiss() {
-        guard let panel, panel.isVisible else { return }
+    private func dismiss(generation: Int) {
+        guard generation == presentationGeneration,
+              let panel,
+              panel.isVisible else { return }
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         NSAnimationContext.runAnimationGroup { context in
             context.duration = reduceMotion ? 0.08 : 0.18
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
-        } completionHandler: {
+        } completionHandler: { [weak self, weak panel] in
+            guard let self,
+                  let panel,
+                  generation == self.presentationGeneration else { return }
             panel.orderOut(nil)
         }
     }
@@ -134,8 +151,8 @@ private final class ProfileSwitchHUDModel: ObservableObject {
     @Published private(set) var tint: Color = .accentColor
     @Published private(set) var isProgress = true
 
-    func update(message: String, symbol: String, tint: Color, isProgress: Bool) {
-        withAnimation(.easeInOut(duration: 0.16)) {
+    func update(message: String, symbol: String, tint: Color, isProgress: Bool, animated: Bool) {
+        withAnimation(animated ? .easeInOut(duration: 0.16) : nil) {
             self.message = message
             self.symbol = symbol
             self.tint = tint

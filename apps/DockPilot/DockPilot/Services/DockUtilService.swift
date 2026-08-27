@@ -114,7 +114,7 @@ final class DockUtilService {
         let output = try await runDockutil(["--list"])
         let currentItems = parser.parse(output, includeIcons: false)
 
-        for item in currentItems where !DockSystemItemPolicy.isSystemManaged(path: item.path) {
+        for item in currentItems where item.type != .spacer && !DockSystemItemPolicy.isSystemManaged(path: item.path) {
             do {
                 _ = try await runDockutil(["--remove", item.path, "--no-restart"])
             } catch {
@@ -122,7 +122,7 @@ final class DockUtilService {
             }
         }
 
-        _ = try? await runDockutil(["--remove", "spacer-tiles", "--no-restart"])
+        _ = try await runDockutil(["--remove", "spacer-tiles", "--no-restart"])
     }
 
     private func addItemToDock(_ item: DockItem) async throws {

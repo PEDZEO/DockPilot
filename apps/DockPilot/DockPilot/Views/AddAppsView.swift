@@ -10,7 +10,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 struct AppInfo: Identifiable {
-    let id = UUID()
+    var id: String { path }
     let name: String
     let path: String
     let iconData: Data?
@@ -200,7 +200,7 @@ struct AddAppsView: View {
         }
         .task {
             // Initialize selected paths with apps already in profile
-            initiallySelectedPaths = Set(profile.items.map(\.path))
+            initiallySelectedPaths = Set(profile.items.filter { $0.type == .app }.map(\.path))
             selectedAppPaths = initiallySelectedPaths
             
             await loadAvailableApps()
@@ -216,76 +216,31 @@ struct AddAppsView: View {
         let userAppsPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Applications").path
         
+        let roots = [systemAppsPath, applicationsPath, userAppsPath]
+        let catalog = await Task.detached(priority: .userInitiated) {
+            ApplicationCatalogScanner.scan(roots: roots)
+        }.value
+
+        guard !Task.isCancelled else { return }
+
         var apps: [AppInfo] = []
-        var seenPaths = Set<String>() // Deduplicate apps by path
-        
-        // Scan all three directories recursively
-        for appsPath in [systemAppsPath, applicationsPath, userAppsPath] {
-            let foundApps = findAppsRecursively(in: appsPath, maxDepth: 4)
-            for app in foundApps {
-                if !seenPaths.contains(app.path) {
-                    apps.append(app)
-                    seenPaths.insert(app.path)
-                }
+        apps.reserveCapacity(catalog.count)
+        for (index, entry) in catalog.enumerated() {
+            guard !Task.isCancelled else { return }
+            let iconData = autoreleasepool {
+                getAppIconData(for: entry.path)
+            }
+            apps.append(AppInfo(name: entry.name, path: entry.path, iconData: iconData))
+
+            // Let search, scrolling and sheet dismissal stay responsive while
+            // a large application catalog is receiving icons.
+            if index.isMultiple(of: 8) {
+                await Task.yield()
             }
         }
-        
-        // Sort by name
-        apps.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        
-        // Update UI on main thread
-        await MainActor.run {
-            self.availableApps = apps
-            self.isLoading = false
-        }
-    }
-    
-    private func findAppsRecursively(in path: String, maxDepth: Int, currentDepth: Int = 0) -> [AppInfo] {
-        var apps: [AppInfo] = []
-        
-        // Stop if we've reached max depth
-        guard currentDepth < maxDepth else { return apps }
-        
-        let fileManager = FileManager.default
-        let url = URL(fileURLWithPath: path)
-        
-        // Use enumerator for efficient directory traversal
-        guard let enumerator = fileManager.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey, .isPackageKey],
-            options: [.skipsHiddenFiles]
-        ) else { return apps }
-        
-        for case let itemURL as URL in enumerator {
-            // Check if it's an .app bundle
-            if itemURL.pathExtension == "app" {
-                let path = itemURL.path
-                let name = itemURL.deletingPathExtension().lastPathComponent
-                
-                // Get app icon
-                if let iconData = getAppIconData(for: path) {
-                    apps.append(AppInfo(name: name, path: path, iconData: iconData))
-                } else {
-                    apps.append(AppInfo(name: name, path: path, iconData: nil))
-                }
-                
-                // Skip contents of .app bundles - don't descend into them
-                enumerator.skipDescendants()
-            }
-            
-            // Limit depth by tracking and skipping too-deep directories
-            if let resourceValues = try? itemURL.resourceValues(forKeys: [.isDirectoryKey]),
-               let isDirectory = resourceValues.isDirectory,
-               isDirectory {
-                let itemPath = itemURL.path
-                let depth = itemPath.components(separatedBy: "/").count - path.components(separatedBy: "/").count
-                if depth >= maxDepth {
-                    enumerator.skipDescendants()
-                }
-            }
-        }
-        
-        return apps
+
+        availableApps = apps
+        isLoading = false
     }
     
     private func getAppIconData(for path: String) -> Data? {
@@ -354,7 +309,9 @@ struct AddAppsView: View {
         
         // Remove apps
         if !appsToRemove.isEmpty {
-            let itemsToDelete = profile.items.filter { appsToRemove.contains($0.path) }
+            let itemsToDelete = profile.items.filter {
+                $0.type == .app && appsToRemove.contains($0.path)
+            }
             for item in itemsToDelete {
                 modelContext.delete(item)
                 print("➖ Removed \(item.name) from profile")
@@ -365,7 +322,8 @@ struct AddAppsView: View {
         if !appsToAdd.isEmpty {
             let maxPosition = profile.items.map(\.position).max() ?? -1
             
-            for (index, appPath) in appsToAdd.enumerated() {
+            let orderedAppPaths = availableApps.map(\.path).filter { appsToAdd.contains($0) }
+            for (index, appPath) in orderedAppPaths.enumerated() {
                 // Find the app info
                 guard let appInfo = availableApps.first(where: { $0.path == appPath }) else {
                     continue

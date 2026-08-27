@@ -59,11 +59,11 @@ struct ProfileFormView: View {
     }
     
     private var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     private func saveProfile() {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Check for duplicate names (excluding current profile if editing)
         let isDuplicate = existingProfiles.contains { existingProfile in
@@ -75,9 +75,11 @@ struct ProfileFormView: View {
             return
         }
         
+        let savedProfile: Profile
         if let profile {
             // Edit existing profile
             profile.name = trimmedName
+            savedProfile = profile
         } else {
             // Create new profile
             let newProfile = Profile(
@@ -86,15 +88,12 @@ struct ProfileFormView: View {
                 sortOrder: existingProfiles.count
             )
             modelContext.insert(newProfile)
+            savedProfile = newProfile
         }
         
         do {
             try modelContext.save()
-            if let profile {
-                onSave(profile)
-            } else if let newProfile = existingProfiles.first(where: { $0.name == trimmedName }) {
-                onSave(newProfile)
-            }
+            onSave(savedProfile)
             dismiss()
         } catch {
             errorMessage = AppLocalization.string(

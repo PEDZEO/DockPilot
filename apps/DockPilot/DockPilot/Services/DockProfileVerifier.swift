@@ -14,7 +14,7 @@ enum DockProfileVerifier {
     /// Keeping this separate from the Dock mutation code makes matching easy to
     /// regression-test and lets us explain a retry without doing extra I/O.
     static func differences(expected: [DockItem], actual: [DockItemInfo]) -> [String] {
-        let expectedItems = expected.filter { $0.type != .spacer }
+        let expectedItems = expected
         var differences: [String] = []
 
         let missingItems = expectedItems.filter { expectedItem in

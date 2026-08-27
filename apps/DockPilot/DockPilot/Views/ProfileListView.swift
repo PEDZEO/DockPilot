@@ -131,6 +131,19 @@ struct ProfileListView: View {
             if selectedProfile?.id == profile.id {
                 selectedProfile = nil
             }
+
+            let replacement = profiles.first { $0.id != profile.id }
+            if profile.id == currentProfileID {
+                if let replacement {
+                    DockStateManager.shared.setCurrentProfile(replacement)
+                } else {
+                    DockStateManager.shared.clearCurrentProfile()
+                }
+            }
+
+            if profile.isDefault, let replacement {
+                replacement.isDefault = true
+            }
             modelContext.delete(profile)
             shortcutPreferences.removeAssignment(for: profile.id)
             do {
