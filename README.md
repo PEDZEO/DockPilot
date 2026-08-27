@@ -1,37 +1,104 @@
+<div align="center">
+
 # DockPilot
 
-DockPilot is a local macOS utility for saving and switching between Dock
-profiles. Keep separate layouts for work, personal apps, games, or individual
-projects and activate them from the menu bar or keyboard.
+**Профили Dock для разных задач на macOS**
 
-## Features
+[![Сборка](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml/badge.svg)](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml)
+![macOS 14.6+](https://img.shields.io/badge/macOS-14.6%2B-black?logo=apple)
+![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-black?logo=apple)
+![Лицензия](https://img.shields.io/badge/лицензия-некоммерческая-blue)
 
-- Create multiple Dock profiles with different apps, URLs, and folders
-- Quick profile switching from the menu bar
-- Global keyboard shortcuts for instant profile changes (`⌥1` through `⌥9`)
-- Import/export profiles to share or backup
-- Automatic update notifications from DockPilot GitHub releases
-- Works completely offline
+DockPilot сохраняет разные наборы приложений, папок и сайтов в Dock и
+переключает их через верхнюю панель или глобальные горячие клавиши.
 
-## Requirements
+<img width="956" alt="Интерфейс приложения для управления профилями Dock" src="https://github.com/user-attachments/assets/96964473-f437-4809-952f-39a3ab9b528d" />
 
-- macOS 14.6 or later
-- Apple Silicon for downloadable CI artifacts
+</div>
 
-## Global shortcuts
+## Для чего это нужно
 
-Non-default profiles are assigned `⌥1` through `⌥9` in their displayed order.
-The shortcuts work anywhere in macOS while DockPilot is running.
+Один Dock быстро превращается в свалку из рабочих инструментов, развлечений и
+редко используемых приложений. DockPilot позволяет собрать отдельные профили,
+например:
 
-Every push to `main` is built by GitHub Actions. Successful runs publish an
-ad-hoc-signed Apple Silicon app as a downloadable artifact.
+- **Работа** — VS Code, Warp, Termius, Safari и почта;
+- **Личное** — Telegram, музыка, YouTube и Twitch;
+- **Игры** — Steam, Discord и игровые клиенты.
 
-## License
+Переключение профиля меняет содержимое системного Dock, поэтому не требуется
+использовать отдельную панель или заменять интерфейс macOS.
 
-This derivative remains available for non-commercial use under the inherited
-license. See [LICENSE](LICENSE) for the complete terms and required copyright
-notice.
+## Возможности
 
-## Credits
+- создание неограниченного количества профилей Dock;
+- приложения, папки, ссылки и разделители внутри профиля;
+- быстрое переключение из верхней панели macOS;
+- глобальные сочетания клавиш `⌥1` — `⌥9`;
+- сохранение текущего Dock в выбранный профиль;
+- импорт и экспорт резервной копии профилей;
+- автоматическая проверка новых релизов на GitHub;
+- локальная работа без аккаунта и телеметрии;
+- автозапуск вместе с macOS.
 
-Dock management is powered by [dockutil](https://github.com/kcrawford/dockutil).
+## Горячие клавиши
+
+Профили, кроме системного профиля **Default**, получают сочетания по порядку:
+
+| Профиль | Сочетание |
+|---|---:|
+| Первый | `⌥1` |
+| Второй | `⌥2` |
+| Третий | `⌥3` |
+| … | … |
+| Девятый | `⌥9` |
+
+Сочетания работают глобально, пока DockPilot запущен. Например, можно открыть
+профиль «Работа» через `⌥1`, не переключаясь на окно приложения.
+
+## Установка
+
+### Готовая сборка
+
+1. Открой последний успешный запуск в разделе
+   [Actions](https://github.com/PEDZEO/DockPilot/actions/workflows/build.yml).
+2. Внизу страницы скачай артефакт **DockPilot-arm64**.
+3. Распакуй архив и перенеси `DockPilot.app` в папку «Программы».
+
+Сборка из GitHub Actions подписана локальной ad-hoc подписью, но не
+нотарифицирована Apple. При первом запуске macOS может попросить подтвердить
+открытие приложения в разделе «Конфиденциальность и безопасность».
+
+### Сборка из исходников
+
+Требуются macOS 14.6 или новее и Xcode 26:
+
+```bash
+git clone https://github.com/PEDZEO/DockPilot.git
+cd DockPilot
+open apps/DockPilot/DockPilot.xcodeproj
+```
+
+## Автоматическая сборка
+
+Каждый push и pull request проверяется в GitHub Actions. Успешная сборка ветки
+`main` создаёт готовый архив `DockPilot-arm64.zip`, доступный в течение 14 дней.
+
+## Ближайшие планы
+
+- настраиваемые клавиши для каждого профиля;
+- автоматическое переключение через режимы фокусирования macOS;
+- отдельный сценарий для игрового профиля;
+- собственная иконка и визуальный стиль DockPilot;
+- подписанные и нотарифицированные релизы.
+
+## Лицензия
+
+DockPilot распространяется только для некоммерческого использования по
+унаследованной лицензии. Полные условия и обязательное уведомление об авторских
+правах находятся в файле [LICENSE](LICENSE).
+
+## Благодарности
+
+Управление системным Dock выполняется с помощью
+[dockutil](https://github.com/kcrawford/dockutil).
