@@ -123,3 +123,4 @@
 "Switching to %@…" = "Switching to %@…";
 "Profile “%@” activated" = "Profile “%@” activated";
 "Unable to switch profile" = "Unable to switch profile";
+"Dock did not retain the selected profile" = "Dock did not retain the selected profile";

@@ -13,6 +13,8 @@ final class ProfileShortcutCoordinator {
     private let preferences = ShortcutPreferences.shared
     private let dockStateManager = DockStateManager()
     private var modelContext: ModelContext?
+    private var activeSlot: Int?
+    private var pendingSlot: Int?
 
     private init() {}
 
@@ -34,6 +36,24 @@ final class ProfileShortcutCoordinator {
     }
 
     private func applyProfile(assignedTo slot: Int) async {
+        if activeSlot != nil {
+            if slot != activeSlot {
+                pendingSlot = slot
+            }
+            return
+        }
+
+        activeSlot = slot
+        defer {
+            activeSlot = nil
+            if let pendingSlot {
+                self.pendingSlot = nil
+                Task { @MainActor [weak self] in
+                    await self?.applyProfile(assignedTo: pendingSlot)
+                }
+            }
+        }
+
         guard let modelContext,
               let profileID = preferences.profileID(for: slot) else {
             NSSound.beep()

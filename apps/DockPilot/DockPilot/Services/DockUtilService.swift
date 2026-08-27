@@ -86,38 +86,56 @@ class DockUtilService {
             print("⚠️ Some items were skipped due to invalid paths. Proceeding with \(validItems.count) valid items…")
         }
         
-        // First, remove all current items and kill cfprefsd to clear cache
-        try await clearDock()
-        
         // Sort items by position
         let sortedItems = validItems.sorted(by: { $0.position < $1.position })
-        
-        for (i, item) in sortedItems.enumerated() {
-            print("  [\(i + 1)/\(validItems.count)] Adding \(item.name)...")
-            try await addItemToDock(item, noRestart: true)
-            //try await Task.sleep(nanoseconds: 20_000_000) // 0.02s between items
 
+        // macOS can occasionally retain a stale Dock preferences snapshot. Verify the
+        // exact result and retry the complete atomic batch once when that happens.
+        for attempt in 1...2 {
+            try await clearDock()
+
+            for (index, item) in sortedItems.enumerated() {
+                print("  [\(index + 1)/\(validItems.count)] Adding \(item.name)...")
+                try await addItemToDock(item, noRestart: true)
+            }
+
+            print("🔄 Restarting Dock to commit batch (attempt \(attempt))...")
+            try await restartDock()
+            try await Task.sleep(nanoseconds: 650_000_000)
+
+            let currentItems = try await readCurrentDock()
+            if profileMatches(expected: sortedItems, actual: currentItems) {
+                print("✅ Profile applied and verified on attempt \(attempt)")
+                return
+            }
+
+            print("⚠️ Dock contents did not match the profile after attempt \(attempt)")
         }
 
-        // Restart Dock to commit the batch
-        print("🔄 Restarting Dock to commit batch...")
-        try await restartDock()
-        
-        // Final verification
-        print("⏳ Performing final verification...")
-        try await Task.sleep(nanoseconds: 500_000_000) // 500ms
-        
-        // Count how many items are actually in the Dock
-        do {
-            let currentItems = try await readCurrentDock()
-            print("✅ Profile applied! \(currentItems.count) items now in Dock (expected \(validItems.count))")
-            
-            if currentItems.count < validItems.count {
-                print("⚠️ Warning: Some items may not have been added successfully")
-                print("   Expected: \(validItems.count), Got: \(currentItems.count)")
+        throw DockUtilError.commandFailed(
+            AppLocalization.string("Dock did not retain the selected profile")
+        )
+    }
+
+    private func profileMatches(expected: [DockItem], actual: [DockItemInfo]) -> Bool {
+        let expectedItems = expected.filter { $0.type != .spacer }
+        guard expectedItems.count == actual.count else { return false }
+
+        return zip(expectedItems, actual).allSatisfy { expectedItem, actualItem in
+            guard expectedItem.type == actualItem.type,
+                  expectedItem.section == actualItem.section else {
+                return false
             }
-        } catch {
-            print("⚠️ Could not verify final Dock state: \(error.localizedDescription)")
+
+            switch expectedItem.type {
+            case .app, .folder:
+                return URL(fileURLWithPath: expectedItem.path).standardizedFileURL.path
+                    == URL(fileURLWithPath: actualItem.path).standardizedFileURL.path
+            case .url:
+                return expectedItem.name == actualItem.name && expectedItem.path == actualItem.path
+            case .spacer:
+                return true
+            }
         }
     }
     
